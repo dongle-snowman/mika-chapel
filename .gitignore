@@ -1,0 +1,10 @@
+# Large downloaded asset packs & archives (excluded from deployment)
+resources/
+*.zip
+*.nwc
+325*.mp3
+dist/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
