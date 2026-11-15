@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>성 미카엘라의 작은 성당 (St. Michaela's Chapel)</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #090b12; font-family: 'Pretendard', sans-serif; color: #f1f5f9;
+      touch-action: none; user-select: none; -webkit-user-select: none;
+    }
+    canvas { display: block; touch-action: none; }
+    #hud {
+      position: fixed; top: 20px; left: 20px; z-index: 10;
+      background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(8px);
+      padding: 16px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    #hud h1 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #fde68a; }
+    #hud p { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+    .hint-mobile { display: none; }
+    #actions {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 10;
+      display: flex; gap: 10px;
+    }
+    button {
+      background: rgba(30, 41, 59, 0.85); color: #f8fafc; border: 1px solid rgba(253, 230, 138, 0.4);
+      padding: 10px 18px; border-radius: 999px; font-size: 14px; cursor: pointer;
+      backdrop-filter: blur(6px); transition: all 0.2s; white-space: nowrap;
+      touch-action: manipulation;
+    }
+    button:hover { background: rgba(253, 230, 138, 0.2); border-color: #fde68a; }
+    #toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(253, 230, 138, 0.92); color: #0f172a; font-weight: 600;
+      padding: 8px 18px; border-radius: 999px; font-size: 13px;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 20;
+      white-space: nowrap;
+    }
+    #joystick-zone {
+      display: none;
+      position: fixed; bottom: 28px; left: 20px; z-index: 15;
+      width: 112px; height: 112px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.55);
+      border: 1.5px solid rgba(253, 230, 138, 0.35);
+      backdrop-filter: blur(6px);
+      touch-action: none;
+      align-items: center; justify-content: center;
+    }
+    #joystick-knob {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fef3c7, #f59e0b);
+      box-shadow: 0 2px 10px rgba(251, 191, 36, 0.45);
+      pointer-events: none;
+      transform: translate(0px, 0px);
+      transition: transform 0.08s ease-out;
+    }
+    #joystick-zone.active #joystick-knob {
+      transition: none;
+    }
+    @media (hover: none) and (pointer: coarse), (max-width: 768px) {
+      #hud {
+        top: 12px; left: 12px; right: 12px;
+        padding: 12px 14px;
+      }
+      #hud h1 { font-size: 15px; margin-bottom: 4px; }
+      #hud p { font-size: 12px; }
+      .hint-desktop { display: none; }
+      .hint-mobile { display: block; }
+      #joystick-zone { display: flex; }
+      #actions {
+        left: auto; right: 16px; bottom: 28px; transform: none;
+        flex-direction: column; align-items: flex-end; gap: 10px;
+      }
+      button {
+        padding: 10px 14px; font-size: 13px;
+      }
+      #toast {
+        top: auto; bottom: 156px;
+      }
+    }
+    .char-row {
+      display: flex; align-items: center; gap: 6px; margin-top: 6px;
+      font-size: 12px; color: #cbd5e1;
+    }
+    .char-btn {
+      padding: 4px 10px; font-size: 12px; border-radius: 999px;
+      background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+    }
+    .char-btn.active {
+      background: rgba(253, 230, 138, 0.25); border-color: #fde68a; color: #fde68a; font-weight: 600;
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="hud">
+    <h1>🕯️ 성 미카엘라의 작은 성당</h1>
+    <p class="hint-desktop">이동: <b>WASD / 방향키</b> · 시점: <b>마우스 드래그</b></p>
+    <p class="hint-mobile">이동: <b>왼쪽 조이스틱</b> · 시점: <b>화면 드래그</b></p>
+    <p>봉헌된 촛불: <b id="candle-count">1</b>개</p>
+    <div class="char-row">
+      <span>캐릭터:</span>
+      <button type="button" id="btn-female" class="char-btn active">👩 여자</button>
+      <button type="button" id="btn-male" class="char-btn">👨 남자</button>
+      <button type="button" id="btn-bgm" class="char-btn" style="margin-left:auto;">🔇 자비송</button>
+    </div>
+  </div>
+
+  <div id="toast">촛불을 밝히고 마음을 모았습니다.</div>
+
+  <div id="joystick-zone" aria-label="이동 조이스틱">
+    <div id="joystick-knob"></div>
+  </div>
+
+  <div id="actions">
+    <button id="btn-candle">🕯️ 촛불 켜기 (E)</button>
+    <button id="btn-pray">🙏 기도하기 / 일어서기 (P)</button>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1f1914);
+    scene.fog = new THREE.FogExp2(0x231b14, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 120);
+    camera.position.set(0, 4.2, 13.5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.25;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 1.2, 10);
+    controls.maxPolarAngle = Math.PI - 0.12;
+    controls.minDistance = 2.5;
+    controls.maxDistance = 18.0;
+
+    // --- Procedural Textures ---
+    function createMarbleTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1b2232';
+      ctx.fillRect(0, 0, 512, 512);
+      const tile = 128;
+      for (let y = 0; y < 512; y += tile) {
+        for (let x = 0; x < 512; x += tile) {
+          const isDark = ((x / tile) + (y / tile)) % 2 === 0;
+          ctx.fillStyle = isDark ? '#182030' : '#2a3347';
+          ctx.fillRect(x + 2, y + 2, tile - 4, tile - 4);
+          ctx.strokeStyle = 'rgba(203, 213, 225, 0.12)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x + 10, y + 20);
+          ctx.bezierCurveTo(x + 50, y + 40, x + 70, y + 80, x + 115, y + 110);
+          ctx.stroke();
+        }
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(5, 9);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function createRoseWindowTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      const cx = 256, cy = 256;
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 512, 512);
+      const colors = ['#60a5fa', '#f472b6', '#fbbf24', '#a78bfa', '#38bdf8', '#fb7185'];
+      for (let ring = 3; ring >= 1; ring--) {
+        const r = ring * 74;
+        const petals = 12;
+        for (let i = 0; i < petals; i++) {
+          const a0 = (i / petals) * Math.PI * 2;
+          const a1 = ((i + 1) / petals) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.arc(cx, cy, r, a0, a1);
+          ctx.closePath();
+          ctx.fillStyle = colors[(i + ring) % colors.length];
+          ctx.fill();
+          ctx.strokeStyle = '#0f172a';
+          ctx.lineWidth = 5;
+          ctx.stroke();
+        }
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, 42, 0, Math.PI * 2);
+      ctx.fillStyle = '#fef08a';
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function createSideWindowTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 256;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 256);
+      grad.addColorStop(0, '#93c5fd');
+      grad.addColorStop(0.35, '#c084fc');
+      grad.addColorStop(0.7, '#f472b6');
+      grad.addColorStop(1, '#fbbf24');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 256);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 4;
+      for (let y = 32; y < 256; y += 32) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(128, y); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(64, 0); ctx.lineTo(64, 256); ctx.stroke();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    // --- Sacred Sunlight & Warm Interior Lighting ---
+    scene.add(new THREE.AmbientLight(0xfff1d6, 1.35));
+    scene.add(new THREE.HemisphereLight(0xffedd5, 0x4a3525, 1.1));
+
+    const sunLight = new THREE.DirectionalLight(0xffdca8, 2.4);
+    sunLight.position.set(4, 18, -18);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(1024, 1024);
+    scene.add(sunLight);
+
+    const altarLight = new THREE.PointLight(0xfbbf24, 12, 28, 1.2);
+    altarLight.position.set(0, 4.2, -11.5);
+    altarLight.castShadow = true;
+    scene.add(altarLight);
+
+    const naveWarmLight = new THREE.PointLight(0xffe4b5, 8.5, 28, 1.2);
+    naveWarmLight.position.set(0, 6.5, 2);
+    scene.add(naveWarmLight);
+
+    const entranceWarmLight = new THREE.PointLight(0xffedd5, 6.5, 22, 1.2);
+    entranceWarmLight.position.set(0, 5.5, 10.5);
+    scene.add(entranceWarmLight);
+
+    const sanctuaryLampLight = new THREE.PointLight(0xef4444, 2.2, 7);
+    sanctuaryLampLight.position.set(-2.3, 2.9, -13.6);
+    scene.add(sanctuaryLampLight);
+
+    // --- Materials ---
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x3b4252, roughness: 0.82 });
+    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x2b303c, roughness: 0.88 });
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.65 });
+    const marbleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.25, metalness: 0.05 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.28, metalness: 0.82, emissive: 0x92400e, emissiveIntensity: 0.18 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2808, roughness: 0.58 });
+    const velvetMat = new THREE.MeshStandardMaterial({ color: 0x881d1d, roughness: 0.88 });
+
+    // --- Floor & Carpet ---
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(18, 34),
+      new THREE.MeshStandardMaterial({ map: createMarbleTexture(), roughness: 0.35, metalness: 0.08 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const carpet = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.02, 24), velvetMat);
+    carpet.position.set(0, 0.01, 2);
+    carpet.receiveShadow = true;
+    scene.add(carpet);
+
+    [-1.18, 1.18].forEach((tx) => {
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.024, 24), goldMat);
+      trim.position.set(tx, 0.012, 2);
+      scene.add(trim);
+    });
+
+    // --- Grand Gothic Architecture (Pillars, Vaulted Ceiling, Side Walls, Windows) ---
+    const sideWinTex = createSideWindowTexture();
+    const sideWinMat = new THREE.MeshBasicMaterial({ map: sideWinTex });
+
+    for (let z = 11; z >= -11; z -= 5.5) {
+      [-5.6, 5.6].forEach((x) => {
+        const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 1.1), pillarMat);
+        base.position.set(x, 0.3, z);
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 11.2, 14), pillarMat);
+        pillar.position.set(x, 6.2, z);
+        pillar.castShadow = true;
+        const capital = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.4, 0.5, 12), pillarMat);
+        capital.position.set(x, 11.6, z);
+        scene.add(base, pillar, capital);
+
+        // Wall sconce lantern on each inner pillar
+        const dir = x < 0 ? 1 : -1;
+        const sconceArm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.06, 0.06), goldMat);
+        sconceArm.position.set(x + dir * 0.48, 3.0, z);
+        const sconceGlow = new THREE.Mesh(
+          new THREE.SphereGeometry(0.11, 10, 10),
+          new THREE.MeshBasicMaterial({ color: 0xfde68a })
+        );
+        sconceGlow.position.set(x + dir * 0.62, 3.12, z);
+        scene.add(sconceArm, sconceGlow);
+      });
+
+      // High Gothic transverse arch
+      const arch = new THREE.Mesh(new THREE.TorusGeometry(5.6, 0.24, 10, 28, Math.PI), pillarMat);
+      arch.position.set(0, 11.6, z);
+      scene.add(arch);
+
+      // Side stained glass windows between pillars
+      if (z > -11) {
+        [-8.6, 8.6].forEach((wx) => {
+          const winMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 4.6), sideWinMat);
+          winMesh.position.set(wx, 5.6, z - 2.75);
+          winMesh.rotation.y = wx < 0 ? Math.PI / 2 : -Math.PI / 2;
+          scene.add(winMesh);
+
+          const winTop = new THREE.Mesh(new THREE.CircleGeometry(0.85, 16, 0, Math.PI), sideWinMat);
+          winTop.position.set(wx, 7.9, z - 2.75);
+          winTop.rotation.y = wx < 0 ? Math.PI / 2 : -Math.PI / 2;
+          scene.add(winTop);
+        });
+      }
+    }
+
+    // Side walls & Vaulted ceiling enclosure
+    [-8.8, 8.8].forEach((wx) => {
+      const sideWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 13, 34), darkStoneMat);
+      sideWall.position.set(wx, 6.5, 0);
+      scene.add(sideWall);
+    });
+
+    const ceiling = new THREE.Mesh(
+      new THREE.CylinderGeometry(8.9, 8.9, 34, 20, 1, true, 0, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9, side: THREE.BackSide })
+    );
+    ceiling.rotation.z = Math.PI / 2;
+    ceiling.rotation.y = Math.PI / 2;
+    ceiling.position.set(0, 11.6, 0);
+    scene.add(ceiling);
+
+    // Altar Back Wall & Entrance Front Wall
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(18, 20, 0.6), darkStoneMat);
+    backWall.position.set(0, 10, -16.5);
+    scene.add(backWall);
+
+    const entranceWall = new THREE.Mesh(new THREE.BoxGeometry(18, 20, 0.6), darkStoneMat);
+    entranceWall.position.set(0, 10, 16.5);
+    scene.add(entranceWall);
+
+    // Grand Arched Cathedral Entrance Door (성당 대문)
+    const doorWoodMat = new THREE.MeshStandardMaterial({ color: 0x3b1806, roughness: 0.62 });
+    const doorPanelMat = new THREE.MeshStandardMaterial({ color: 0x2a1004, roughness: 0.7 });
+    [-1.72, 1.72].forEach((dx) => {
+      const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 3.6, 0.35), pillarMat);
+      jamb.position.set(dx, 1.8, 16.12);
+      scene.add(jamb);
+    });
+    const doorArch = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.18, 10, 28, Math.PI), pillarMat);
+    doorArch.position.set(0, 3.6, 16.12);
+    scene.add(doorArch);
+
+    const doorTransom = new THREE.Mesh(
+      new THREE.CircleGeometry(1.68, 28, 0, Math.PI),
+      new THREE.MeshBasicMaterial({ map: sideWinTex })
+    );
+    doorTransom.position.set(0, 3.6, 16.16);
+    doorTransom.rotation.y = Math.PI;
+    scene.add(doorTransom);
+
+    [-0.82, 0.82].forEach((px) => {
+      const leaf = new THREE.Mesh(new THREE.BoxGeometry(1.58, 3.6, 0.14), doorWoodMat);
+      leaf.position.set(px, 1.8, 16.14);
+      scene.add(leaf);
+
+      [1.0, 2.55].forEach((py) => {
+        const panel = new THREE.Mesh(new THREE.BoxGeometry(1.12, 1.15, 0.04), doorPanelMat);
+        panel.position.set(px, py, 16.07);
+        scene.add(panel);
+      });
+
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 8, 18), goldMat);
+      handle.position.set(px + (px < 0 ? 0.56 : -0.56), 1.55, 16.04);
+      scene.add(handle);
+
+      [0.65, 1.8, 2.95].forEach((hy) => {
+        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.03), goldMat);
+        strap.position.set(px + (px < 0 ? -0.45 : 0.45), hy, 16.06);
+        scene.add(strap);
+      });
+    });
+
+    // Grand Stained-Glass Rose Window
+    const roseWindow = new THREE.Mesh(
+      new THREE.CircleGeometry(3.2, 48),
+      new THREE.MeshBasicMaterial({ map: createRoseWindowTexture() })
+    );
+    roseWindow.position.set(0, 9.8, -16.15);
+    scene.add(roseWindow);
+
+    const roseFrame = new THREE.Mesh(new THREE.TorusGeometry(3.25, 0.16, 12, 48), pillarMat);
+    roseFrame.position.set(0, 9.8, -16.12);
+    scene.add(roseFrame);
+
+    // Volumetric-style Light Shafts (God Rays)
+    const rayMat = new THREE.MeshBasicMaterial({
+      color: 0xfde68a,
+      transparent: true,
+      opacity: 0.085,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const mainRay = new THREE.Mesh(new THREE.ConeGeometry(4.4, 15, 24, 1, true), rayMat);
+    mainRay.position.set(0, 5.4, -10.8);
+    mainRay.rotation.x = Math.PI / 4.2;
+    scene.add(mainRay);
+
+    // Floating Golden Dust Motes
+    const dustCount = 180;
+    const dustPositions = new Float32Array(dustCount * 3);
+    for (let i = 0; i < dustCount; i++) {
+      dustPositions[i * 3] = (Math.random() - 0.5) * 14;
+      dustPositions[i * 3 + 1] = 0.6 + Math.random() * 10;
+      dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 26;
+    }
+    const dustGeo = new THREE.BufferGeometry();
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+    const dustPoints = new THREE.Points(
+      dustGeo,
+      new THREE.PointsMaterial({
+        color: 0xfde68a,
+        size: 0.075,
+        transparent: true,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    scene.add(dustPoints);
+
+    // --- Sanctuary Steps & Communion Rail ---
+    for (let s = 0; s < 3; s++) {
+      const step = new THREE.Mesh(
+        new THREE.BoxGeometry(11.6, 0.2, 5.8 - s * 0.45),
+        marbleMat
+      );
+      step.position.set(0, 0.1 + s * 0.2, -13.2 - s * 0.22);
+      step.receiveShadow = true;
+      scene.add(step);
+    }
+
+    // Communion Rail (Left & Right, leaving center aisle open)
+    [-3.3, 3.3].forEach((rx) => {
+      const railTop = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 0.16), marbleMat);
+      railTop.position.set(rx, 0.82, -10.2);
+      scene.add(railTop);
+      for (let px = -1.4; px <= 1.4; px += 0.7) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.78, 8), marbleMat);
+        post.position.set(rx + px, 0.42, -10.2);
+        scene.add(post);
+      }
+    });
+
+    // --- High Altar, Altar Cloth, Chalice, Candles & Crucifix ---
+    const altarY = 0.6;
+    const altar = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.05, 1.45), marbleMat);
+    altar.position.set(0, altarY + 0.525, -13.2);
+    altar.castShadow = true;
+    scene.add(altar);
+
+    const altarCloth = new THREE.Mesh(
+      new THREE.BoxGeometry(3.68, 0.12, 1.52),
+      new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.9 })
+    );
+    altarCloth.position.set(0, altarY + 1.04, -13.2);
+    scene.add(altarCloth);
+
+    // Altar 6 Candlesticks (3 left, 3 right)
+    [-1.4, -1.1, -0.8, 0.8, 1.1, 1.4].forEach((cx) => {
+      const holder = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.08, 0.28, 10), goldMat);
+      holder.position.set(cx, altarY + 1.24, -13.35);
+      const cWax = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.26, 8), new THREE.MeshBasicMaterial({ color: 0xfef3c7 }));
+      cWax.position.set(cx, altarY + 1.5, -13.35);
+      const cFlame = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+      cFlame.position.set(cx, altarY + 1.66, -13.35);
+      scene.add(holder, cWax, cFlame);
+    });
+
+    // Golden Chalice & Missal on Altar
+    const chaliceBase = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.08, 0.14, 12), goldMat);
+    chaliceBase.position.set(0, altarY + 1.17, -13.1);
+    const chaliceCup = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.03, 0.12, 12), goldMat);
+    chaliceCup.position.set(0, altarY + 1.29, -13.1);
+    const missal = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.06, 0.24), velvetMat);
+    missal.position.set(-0.45, altarY + 1.13, -13.05);
+    scene.add(chaliceBase, chaliceCup, missal);
+
+    // Tabernacle (감실) & Red Sanctuary Lamp (성체등)
+    const tabernacle = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.65), goldMat);
+    tabernacle.position.set(0, altarY + 1.45, -14.6);
+    scene.add(tabernacle);
+
+    const lampChain = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 1.8, 6), goldMat);
+    lampChain.position.set(-2.3, 3.8, -13.6);
+    const sanctuaryLamp = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09, 0.06, 0.24, 12),
+      new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    );
+    sanctuaryLamp.position.set(-2.3, 2.9, -13.6);
+    scene.add(lampChain, sanctuaryLamp);
+
+    // Grand Crucifix behind Altar
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.0, 0.2), goldMat);
+    crossV.position.set(0, 3.8, -15.3);
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.22, 0.2), goldMat);
+    crossH.position.set(0, 4.35, -15.3);
+    scene.add(crossV, crossH);
+
+    // Ambo / Lectern (독서대) on Left
+    const lecternBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 1.15, 10), woodMat);
+    lecternBase.position.set(-2.8, altarY + 0.575, -12.0);
+    const lecternTop = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.08, 0.48), woodMat);
+    lecternTop.position.set(-2.8, altarY + 1.18, -12.0);
+    lecternTop.rotation.x = 0.25;
+    const bible = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.3), new THREE.MeshStandardMaterial({ color: 0xf8fafc }));
+    bible.position.set(-2.8, altarY + 1.24, -12.0);
+    bible.rotation.x = 0.25;
+    scene.add(lecternBase, lecternTop, bible);
+
+    // Side Shrine & Lily Flower Vases
+    [-4.1, 4.1].forEach((fx) => {
+      const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.9, 12), marbleMat);
+      pedestal.position.set(fx, altarY + 0.45, -14.2);
+      const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.09, 0.32, 12), goldMat);
+      vase.position.set(fx, altarY + 1.06, -14.2);
+      scene.add(pedestal, vase);
+      for (let b = 0; b < 5; b++) {
+        const ang = (b / 5) * Math.PI * 2;
+        const blossom = new THREE.Mesh(
+          new THREE.SphereGeometry(0.08, 8, 8),
+          new THREE.MeshStandardMaterial({ color: 0xfff1f2, emissive: 0xfecdd3, emissiveIntensity: 0.15 })
+        );
+        blossom.position.set(fx + Math.cos(ang) * 0.11, altarY + 1.28 + (b % 2) * 0.07, -14.2 + Math.sin(ang) * 0.11);
+        scene.add(blossom);
+      }
+    });
+
+    // --- Pipe Organ on Rear Gallery (입구 상단 파이프오르간) ---
+    const organCase = new THREE.Mesh(new THREE.BoxGeometry(6.8, 2.2, 1.2), woodMat);
+    organCase.position.set(0, 6.2, 15.6);
+    scene.add(organCase);
+    for (let p = -10; p <= 10; p++) {
+      const h = 3.6 - Math.abs(p) * 0.14;
+      const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, h, 10), goldMat);
+      pipe.position.set(p * 0.28, 7.3 + h / 2, 15.1);
+      scene.add(pipe);
+    }
+
+    // --- Holy Water Fonts at Entrance (입구 성수반 2개) ---
+    [-1.6, 1.6].forEach((hx) => {
+      const fontPedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.2, 0.85, 12), marbleMat);
+      fontPedestal.position.set(hx, 0.425, 12.6);
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.14, 0.22, 16), marbleMat);
+      bowl.position.set(hx, 0.92, 12.6);
+      const water = new THREE.Mesh(
+        new THREE.CircleGeometry(0.26, 16),
+        new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.3 })
+      );
+      water.rotation.x = -Math.PI / 2;
+      water.position.set(hx, 1.035, 12.6);
+      scene.add(fontPedestal, bowl, water);
+    });
+
+    // --- Pews with Armrests & Velvet Kneelers ---
+    for (let z = 8.5; z >= -7.5; z -= 2.6) {
+      [-3.1, 3.1].forEach((x) => {
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 0.55), woodMat);
+        seat.position.set(x, 0.5, z);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.68, 0.1), woodMat);
+        back.position.set(x, 0.86, z + 0.24);
+        const kneeler = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.08, 0.22), velvetMat);
+        kneeler.position.set(x, 0.14, z + 0.52);
+        scene.add(seat, back, kneeler);
+        [-1.6, 1.6].forEach((ax) => {
+          const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.95, 0.62), woodMat);
+          arm.position.set(x + ax, 0.48, z + 0.03);
+          scene.add(arm);
+        });
+      });
+    }
+
+    // --- Votive Candle Stand (봉헌대) ---
+    const standTop = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.12, 0.9), pillarMat);
+    standTop.position.set(3.2, 0.8, -10.8);
+    const standTray = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.04, 0.78), goldMat);
+    standTray.position.set(3.2, 0.87, -10.8);
+    scene.add(standTop, standTray);
+    [[-0.8, -0.35], [0.8, -0.35], [-0.8, 0.35], [0.8, 0.35]].forEach(([lx, lz]) => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.8, 8), pillarMat);
+      leg.position.set(3.2 + lx, 0.4, -10.8 + lz);
+      scene.add(leg);
+    });
+
+    const flames = [];
+    function addCandle() {
+      const idx = flames.length;
+      if (idx >= 18) return;
+      const col = idx % 6;
+      const row = Math.floor(idx / 6);
+      const cx = 2.55 + col * 0.26;
+      const cz = -11.02 + row * 0.22;
+
+      const wax = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, 0.28, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfef3c7 })
+      );
+      wax.position.set(cx, 1.03, cz);
+
+      const flame = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+      );
+      flame.position.set(cx, 1.21, cz);
+      scene.add(wax, flame);
+      flames.push(flame);
+
+      document.getElementById('candle-count').textContent = flames.length;
+    }
+    addCandle();
+
+    const avatar = new THREE.Group();
+    avatar.position.set(0, 0, 10);
+    avatar.castShadow = true;
+    scene.add(avatar);
+
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffe0bd, roughness: 0.55 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+    const shoeMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+    let activeHead = null;
+    let activeParts = { leftArm: null, rightArm: null, leftLeg: null, rightLeg: null };
+    let currentGender = 'female';
+
+    function applyPose() {
+      avatar.position.y = isPraying ? -0.26 : 0;
+      if (activeHead) activeHead.rotation.x = isPraying ? 0.38 : 0;
+      if (activeParts.leftArm && activeParts.rightArm) {
+        activeParts.leftArm.rotation.x = isPraying ? -0.85 : 0;
+        activeParts.rightArm.rotation.x = isPraying ? -0.85 : 0;
+        activeParts.leftArm.rotation.z = isPraying ? 0.25 : 0;
+        activeParts.rightArm.rotation.z = isPraying ? -0.25 : 0;
+      }
+      if (activeParts.leftLeg && activeParts.rightLeg) {
+        activeParts.leftLeg.rotation.x = isPraying ? 0.35 : 0;
+        activeParts.rightLeg.rotation.x = isPraying ? 0.35 : 0;
+      }
+    }
+
+    function buildCharacter(gender) {
+      while (avatar.children.length > 0) avatar.remove(avatar.children[0]);
+
+      const isFemale = gender === 'female';
+      const shirtMat = new THREE.MeshStandardMaterial({
+        color: isFemale ? 0xfbcfe8 : 0x334155,
+        roughness: 0.55
+      });
+      const legMat = new THREE.MeshStandardMaterial({
+        color: isFemale ? 0xfef3c7 : 0x1e293b,
+        roughness: 0.65
+      });
+
+      // --- Head (Roblox/Lego rounded block head) ---
+      const headGroup = new THREE.Group();
+      headGroup.position.y = 1.24;
+      const headMesh = new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.38, 0.38, 4, 0.09), skinMat);
+      headMesh.castShadow = true;
+      headGroup.add(headMesh);
+
+      // Cute eyes (+Z is forward)
+      [-0.085, 0.085].forEach((ex) => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 10, 10), eyeMat);
+        eye.position.set(ex, 0.02, 0.185);
+        eye.scale.set(1, 1.25, 0.5);
+        headGroup.add(eye);
+      });
+      // Subtle blush
+      [-0.125, 0.125].forEach((bx) => {
+        const blush = new THREE.Mesh(
+          new THREE.CircleGeometry(0.032, 12),
+          new THREE.MeshBasicMaterial({ color: 0xfda4af, transparent: true, opacity: 0.65 })
+        );
+        blush.position.set(bx, -0.04, 0.191);
+        headGroup.add(blush);
+      });
+
+      if (isFemale) {
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.65 });
+        const hairTop = new THREE.Mesh(new RoundedBoxGeometry(0.45, 0.14, 0.42, 3, 0.04), hairMat);
+        hairTop.position.set(0, 0.15, -0.01);
+        const hairBack = new THREE.Mesh(new RoundedBoxGeometry(0.44, 0.44, 0.14, 3, 0.04), hairMat);
+        hairBack.position.set(0, -0.04, -0.15);
+        [-0.2, 0.2].forEach((sx) => {
+          const side = new THREE.Mesh(new RoundedBoxGeometry(0.08, 0.34, 0.22, 2, 0.02), hairMat);
+          side.position.set(sx, -0.02, -0.02);
+          headGroup.add(side);
+        });
+        const band = new THREE.Mesh(
+          new RoundedBoxGeometry(0.46, 0.055, 0.1, 2, 0.02),
+          new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.4 })
+        );
+        band.position.set(0, 0.2, 0.04);
+        headGroup.add(hairTop, hairBack, band);
+      } else {
+        const hairMat = new THREE.MeshStandardMaterial({ color: 0x271c15, roughness: 0.7 });
+        const hairTop = new THREE.Mesh(new RoundedBoxGeometry(0.45, 0.14, 0.41, 3, 0.04), hairMat);
+        hairTop.position.set(0, 0.15, -0.01);
+        const hairBack = new THREE.Mesh(new RoundedBoxGeometry(0.44, 0.24, 0.12, 3, 0.03), hairMat);
+        hairBack.position.set(0, 0.05, -0.16);
+        headGroup.add(hairTop, hairBack);
+      }
+
+      // --- Torso ---
+      const torso = new THREE.Mesh(new RoundedBoxGeometry(0.46, 0.5, 0.26, 3, 0.04), shirtMat);
+      torso.position.y = 0.78;
+      torso.castShadow = true;
+      avatar.add(torso);
+
+      if (isFemale) {
+        const skirt = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.24, 0.32, 3, 0.04), legMat);
+        skirt.position.y = 0.46;
+        skirt.castShadow = true;
+        avatar.add(skirt);
+      } else {
+        const collar = new THREE.Mesh(
+          new RoundedBoxGeometry(0.22, 0.1, 0.27, 2, 0.02),
+          new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 })
+        );
+        collar.position.set(0, 0.99, 0.01);
+        avatar.add(collar);
+      }
+
+      // --- Articulated Arms ---
+      function makeArm(x) {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0.98, 0);
+        const sleeve = new THREE.Mesh(new RoundedBoxGeometry(0.15, 0.38, 0.16, 3, 0.03), shirtMat);
+        sleeve.position.y = -0.17;
+        sleeve.castShadow = true;
+        const hand = new THREE.Mesh(new THREE.SphereGeometry(0.072, 12, 12), skinMat);
+        hand.position.y = -0.39;
+        pivot.add(sleeve, hand);
+        avatar.add(pivot);
+        return pivot;
+      }
+
+      // --- Articulated Legs ---
+      function makeLeg(x) {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0.52, 0);
+        const leg = new THREE.Mesh(new RoundedBoxGeometry(0.19, 0.42, 0.21, 3, 0.03), legMat);
+        leg.position.y = -0.21;
+        leg.castShadow = true;
+        const shoe = new THREE.Mesh(new RoundedBoxGeometry(0.2, 0.1, 0.25, 2, 0.02), shoeMat);
+        shoe.position.set(0, -0.45, 0.02);
+        pivot.add(leg, shoe);
+        avatar.add(pivot);
+        return pivot;
+      }
+
+      activeParts.leftArm = makeArm(-0.32);
+      activeParts.rightArm = makeArm(0.32);
+      activeParts.leftLeg = makeLeg(-0.12);
+      activeParts.rightLeg = makeLeg(0.12);
+
+      avatar.add(headGroup);
+      activeHead = headGroup;
+      applyPose();
+    }
+
+    const keys = {};
+    let isPraying = false;
+    buildCharacter(currentGender);
+
+    function setGender(gender) {
+      if (currentGender === gender) return;
+      currentGender = gender;
+      buildCharacter(gender);
+      document.getElementById('btn-female').classList.toggle('active', gender === 'female');
+      document.getElementById('btn-male').classList.toggle('active', gender === 'male');
+      showToast(gender === 'female' ? '여자 캐릭터로 변경했습니다.' : '남자 캐릭터로 변경했습니다.');
+    }
+
+    document.getElementById('btn-female').onclick = () => setGender('female');
+    document.getElementById('btn-male').onclick = () => setGender('male');
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.opacity = '1';
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => (el.style.opacity = '0'), 2200);
+    }
+
+    function togglePray() {
+      isPraying = !isPraying;
+      applyPose();
+      showToast(isPraying ? '무릎을 꿇고 기도를 시작합니다.' : '자리에서 일어났습니다.');
+    }
+
+    function lightCandle() {
+      addCandle();
+      showToast('촛불을 밝혀 기도를 봉헌했습니다.');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (e.code === 'KeyE') lightCandle();
+      if (e.code === 'KeyP') togglePray();
+    });
+    window.addEventListener('keyup', (e) => (keys[e.code] = false));
+    document.getElementById('btn-candle').onclick = lightCandle;
+    document.getElementById('btn-pray').onclick = togglePray;
+
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickKnob = document.getElementById('joystick-knob');
+    const maxJoystickRadius = 34;
+    let joyPointerId = null;
+    let joyX = 0;
+    let joyY = 0;
+
+    function updateJoystick(clientX, clientY) {
+      const rect = joystickZone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      let offsetX = clientX - centerX;
+      let offsetY = clientY - centerY;
+      const dist = Math.hypot(offsetX, offsetY);
+      if (dist > maxJoystickRadius) {
+        offsetX = (offsetX / dist) * maxJoystickRadius;
+        offsetY = (offsetY / dist) * maxJoystickRadius;
+      }
+      joystickKnob.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+      joyX = offsetX / maxJoystickRadius;
+      joyY = offsetY / maxJoystickRadius;
+    }
+
+    function resetJoystick() {
+      joyPointerId = null;
+      joyX = 0;
+      joyY = 0;
+      joystickZone.classList.remove('active');
+      joystickKnob.style.transform = 'translate(0px, 0px)';
+    }
+
+    joystickZone.addEventListener('pointerdown', (e) => {
+      if (joyPointerId !== null) return;
+      e.preventDefault();
+      e.stopPropagation();
+      joyPointerId = e.pointerId;
+      joystickZone.classList.add('active');
+      joystickZone.setPointerCapture(e.pointerId);
+      updateJoystick(e.clientX, e.clientY);
+    });
+
+    joystickZone.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== joyPointerId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      updateJoystick(e.clientX, e.clientY);
+    });
+
+    joystickZone.addEventListener('pointerup', (e) => {
+      if (e.pointerId !== joyPointerId) return;
+      e.stopPropagation();
+      resetJoystick();
+    });
+
+    joystickZone.addEventListener('pointercancel', (e) => {
+      if (e.pointerId !== joyPointerId) return;
+      resetJoystick();
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    const camForward = new THREE.Vector3();
+    const camRight = new THREE.Vector3();
+    const upAxis = new THREE.Vector3(0, 1, 0);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.getElapsedTime();
+
+      let isMoving = false;
+      if (!isPraying) {
+        let inputX = joyX;
+        let inputY = joyY;
+        if (keys['KeyW'] || keys['ArrowUp']) inputY -= 1;
+        if (keys['KeyS'] || keys['ArrowDown']) inputY += 1;
+        if (keys['KeyA'] || keys['ArrowLeft']) inputX -= 1;
+        if (keys['KeyD'] || keys['ArrowRight']) inputX += 1;
+
+        const inputLen = Math.hypot(inputX, inputY);
+        if (inputLen > 0.08) {
+          isMoving = true;
+          const strength = Math.min(inputLen, 1);
+          const nx = inputX / inputLen;
+          const ny = inputY / inputLen;
+
+          camera.getWorldDirection(camForward);
+          camForward.y = 0;
+          if (camForward.lengthSq() > 0.0001) camForward.normalize();
+          else camForward.set(0, 0, -1);
+          camRight.crossVectors(camForward, upAxis).normalize();
+
+          const dx = camRight.x * nx - camForward.x * ny;
+          const dz = camRight.z * nx - camForward.z * ny;
+
+          const prevX = avatar.position.x;
+          const prevZ = avatar.position.z;
+          avatar.position.x = THREE.MathUtils.clamp(prevX + dx * 4.2 * strength * dt, -4.5, 4.5);
+          avatar.position.z = THREE.MathUtils.clamp(prevZ + dz * 4.2 * strength * dt, -10.5, 13.5);
+          avatar.rotation.y = Math.atan2(dx, dz);
+
+          const moveX = avatar.position.x - prevX;
+          const moveZ = avatar.position.z - prevZ;
+          camera.position.x += moveX;
+          camera.position.z += moveZ;
+          controls.target.x += moveX;
+          controls.target.z += moveZ;
+        }
+      }
+
+      if (!isPraying && activeParts.leftArm) {
+        const swing = isMoving ? Math.sin(elapsed * 10) * 0.55 : 0;
+        activeParts.leftArm.rotation.x = THREE.MathUtils.lerp(activeParts.leftArm.rotation.x, swing, 0.22);
+        activeParts.rightArm.rotation.x = THREE.MathUtils.lerp(activeParts.rightArm.rotation.x, -swing, 0.22);
+        activeParts.leftLeg.rotation.x = THREE.MathUtils.lerp(activeParts.leftLeg.rotation.x, -swing * 0.85, 0.22);
+        activeParts.rightLeg.rotation.x = THREE.MathUtils.lerp(activeParts.rightLeg.rotation.x, swing * 0.85, 0.22);
+      }
+
+      flames.forEach((f, i) => {
+        const s = 1 + Math.sin(elapsed * 12 + i) * 0.15;
+        f.scale.set(s, s * 1.2, s);
+      });
+
+      dustPoints.rotation.y = elapsed * 0.015;
+      dustPoints.position.y = Math.sin(elapsed * 0.4) * 0.18;
+      sanctuaryLampLight.intensity = 2.0 + Math.sin(elapsed * 3.2) * 0.35;
+
+      controls.target.lerp(new THREE.Vector3(avatar.position.x, 1.2, avatar.position.z), 0.1);
+      controls.update();
+      if (camera.position.y < 0.25) camera.position.y = 0.25;
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- 자비송 (보컬 제거 반주 MP3) BGM ---
+    const btnBgm = document.getElementById('btn-bgm');
+    const bgmAudio = new Audio('./audio/kyrie.mp3');
+    bgmAudio.loop = true;
+    bgmAudio.volume = 0.45;
+    bgmAudio.preload = 'auto';
+
+    let bgmPlaying = false;
+    let bgmUserMuted = false;
+
+    function startBgm(showMsg = false) {
+      bgmUserMuted = false;
+      bgmAudio.play().then(() => {
+        bgmPlaying = true;
+        btnBgm.textContent = '🔊 자비송';
+        btnBgm.classList.add('active');
+        if (showMsg) showToast('🎵 자비송 반주(멜로디)가 재생됩니다.');
+      }).catch(() => {});
+    }
+
+    function stopBgm() {
+      bgmPlaying = false;
+      bgmUserMuted = true;
+      bgmAudio.pause();
+      btnBgm.textContent = '🔇 자비송';
+      btnBgm.classList.remove('active');
+    }
+
+    btnBgm.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (bgmPlaying) {
+        stopBgm();
+        showToast('배경음을 껐습니다.');
+      } else {
+        startBgm(true);
+      }
+    });
+
+    function unlockAudioOnce() {
+      if (!bgmUserMuted && !bgmPlaying) {
+        startBgm(true);
+      }
+      window.removeEventListener('pointerdown', unlockAudioOnce);
+      window.removeEventListener('keydown', unlockAudioOnce);
+    }
+    window.addEventListener('pointerdown', unlockAudioOnce);
+    window.addEventListener('keydown', unlockAudioOnce);
+  </script>
+</body>
+</html>
