@@ -3,45 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>성 미카엘라의 작은 성당 (St. Michaela's Chapel)</title>
+  <title>meekaa의 작은 성당 (meekaa's Chapel)</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100%; height: 100%; overflow: hidden;
-      background: #090b12; font-family: 'Pretendard', sans-serif; color: #f1f5f9;
+      background: #090b12; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; color: #f1f5f9;
       touch-action: none; user-select: none; -webkit-user-select: none;
     }
     canvas { display: block; touch-action: none; }
     #hud {
-      position: fixed; top: 20px; left: 20px; z-index: 10;
+      position: fixed; top: 16px; left: 16px; z-index: 10;
       background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(8px);
-      padding: 16px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14);
     }
-    #hud h1 { font-size: 16px; font-weight: 600; margin-bottom: 6px; color: #fde68a; }
-    #hud p { font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+    #hud h1 { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: #fde68a; }
+    #hud p { font-size: 12px; color: #cbd5e1; line-height: 1.45; }
     .hint-mobile { display: none; }
+    #top-tools {
+      position: fixed; top: 16px; right: 16px; z-index: 10;
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
+      background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(8px);
+      padding: 6px 8px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .tool-btn {
+      padding: 6px 11px; font-size: 12px; border-radius: 999px;
+      background: rgba(30, 41, 59, 0.75); border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e2e8f0; cursor: pointer; white-space: nowrap; touch-action: manipulation;
+      transition: all 0.2s;
+    }
+    .tool-btn.active {
+      background: rgba(253, 230, 138, 0.24); border-color: #fde68a; color: #fde68a; font-weight: 600;
+    }
+    .name-row {
+      display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 12px; color: #fde68a;
+    }
+    #btn-edit-name {
+      padding: 2px 8px; font-size: 11px; border-radius: 999px;
+      background: rgba(253, 230, 138, 0.14); border: 1px solid rgba(253, 230, 138, 0.35);
+      color: #fde68a; cursor: pointer;
+    }
     #actions {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 10;
-      display: flex; gap: 10px;
+      position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 10;
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+      background: rgba(15, 23, 42, 0.72); backdrop-filter: blur(8px);
+      padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(253, 230, 138, 0.25);
     }
-    button {
-      background: rgba(30, 41, 59, 0.85); color: #f8fafc; border: 1px solid rgba(253, 230, 138, 0.4);
-      padding: 10px 18px; border-radius: 999px; font-size: 14px; cursor: pointer;
-      backdrop-filter: blur(6px); transition: all 0.2s; white-space: nowrap;
-      touch-action: manipulation;
+    .act-btn {
+      background: rgba(30, 41, 59, 0.85); color: #f8fafc; border: 1px solid rgba(253, 230, 138, 0.38);
+      padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor: pointer;
+      transition: all 0.2s; white-space: nowrap; touch-action: manipulation;
     }
-    button:hover { background: rgba(253, 230, 138, 0.2); border-color: #fde68a; }
+    .act-btn:hover, .act-btn.active { background: rgba(253, 230, 138, 0.22); border-color: #fde68a; color: #fde68a; }
     #toast {
-      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
-      background: rgba(253, 230, 138, 0.92); color: #0f172a; font-weight: 600;
+      position: fixed; top: 76px; left: 50%; transform: translateX(-50%);
+      background: rgba(253, 230, 138, 0.94); color: #0f172a; font-weight: 600;
       padding: 8px 18px; border-radius: 999px; font-size: 13px;
-      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 20;
-      white-space: nowrap;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 30;
+      white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
     }
     #joystick-zone {
       display: none;
-      position: fixed; bottom: 28px; left: 20px; z-index: 15;
-      width: 112px; height: 112px; border-radius: 50%;
+      position: fixed; bottom: 24px; left: 16px; z-index: 15;
+      width: 104px; height: 104px; border-radius: 50%;
       background: rgba(15, 23, 42, 0.55);
       border: 1.5px solid rgba(253, 230, 138, 0.35);
       backdrop-filter: blur(6px);
@@ -49,48 +73,67 @@
       align-items: center; justify-content: center;
     }
     #joystick-knob {
-      width: 46px; height: 46px; border-radius: 50%;
+      width: 42px; height: 42px; border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, #fef3c7, #f59e0b);
       box-shadow: 0 2px 10px rgba(251, 191, 36, 0.45);
       pointer-events: none;
       transform: translate(0px, 0px);
       transition: transform 0.08s ease-out;
     }
-    #joystick-zone.active #joystick-knob {
-      transition: none;
+    #joystick-zone.active #joystick-knob { transition: none; }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 40;
+      background: rgba(6, 8, 16, 0.72); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 16px;
     }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 400px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(253, 230, 138, 0.4);
+      border-radius: 18px; padding: 22px 20px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6);
+      color: #f1f5f9; text-align: center;
+      user-select: text; -webkit-user-select: text;
+    }
+    .modal-card h2 { font-size: 17px; color: #fde68a; margin-bottom: 12px; }
+    .prayer-text {
+      font-size: 13.5px; line-height: 1.78; color: #e2e8f0;
+      text-align: left; background: rgba(30, 41, 59, 0.55);
+      padding: 14px 16px; border-radius: 12px; margin-bottom: 16px;
+      max-height: 55vh; overflow-y: auto;
+    }
+    .modal-input {
+      width: 100%; background: rgba(30, 41, 59, 0.85); color: #f8fafc;
+      border: 1px solid rgba(253, 230, 138, 0.35); border-radius: 12px;
+      padding: 10px 12px; font-size: 14px; font-family: inherit;
+      margin-bottom: 14px; outline: none; resize: none;
+    }
+    .modal-input:focus { border-color: #fde68a; }
+    .modal-btns { display: flex; gap: 8px; justify-content: center; }
+
     @media (hover: none) and (pointer: coarse), (max-width: 768px) {
       #hud {
-        top: 12px; left: 12px; right: 12px;
-        padding: 12px 14px;
+        top: 10px; left: 10px; padding: 9px 12px; max-width: 178px;
       }
-      #hud h1 { font-size: 15px; margin-bottom: 4px; }
-      #hud p { font-size: 12px; }
+      #hud h1 { font-size: 13px; margin-bottom: 2px; }
+      #hud p { font-size: 11px; }
       .hint-desktop { display: none; }
       .hint-mobile { display: block; }
+      #top-tools {
+        top: 10px; right: 10px; padding: 5px 6px; gap: 4px; max-width: 185px;
+      }
+      .tool-btn { padding: 5px 8px; font-size: 11px; }
       #joystick-zone { display: flex; }
       #actions {
-        left: auto; right: 16px; bottom: 28px; transform: none;
-        flex-direction: column; align-items: flex-end; gap: 10px;
+        left: auto; right: 10px; bottom: 18px; transform: none;
+        max-width: calc(100vw - 134px);
+        border-radius: 18px; padding: 6px; gap: 5px;
       }
-      button {
-        padding: 10px 14px; font-size: 13px;
-      }
-      #toast {
-        top: auto; bottom: 156px;
-      }
-    }
-    .char-row {
-      display: flex; align-items: center; gap: 6px; margin-top: 6px;
-      font-size: 12px; color: #cbd5e1;
-    }
-    .char-btn {
-      padding: 4px 10px; font-size: 12px; border-radius: 999px;
-      background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.2);
-      color: #cbd5e1;
-    }
-    .char-btn.active {
-      background: rgba(253, 230, 138, 0.25); border-color: #fde68a; color: #fde68a; font-weight: 600;
+      .act-btn { padding: 7px 9px; font-size: 11.5px; }
+      #toast { top: auto; bottom: 142px; font-size: 12px; }
     }
   </style>
   <script type="importmap">
@@ -104,16 +147,21 @@
 </head>
 <body>
   <div id="hud">
-    <h1>🕯️ 성 미카엘라의 작은 성당</h1>
-    <p class="hint-desktop">이동: <b>WASD / 방향키</b> · 시점: <b>마우스 드래그</b></p>
-    <p class="hint-mobile">이동: <b>왼쪽 조이스틱</b> · 시점: <b>화면 드래그</b></p>
+    <h1>🕯️ meekaa의 작은 성당</h1>
+    <p class="hint-desktop">이동: <b>WASD</b> · 시점: <b>드래그</b></p>
+    <p class="hint-mobile">이동: <b>조이스틱</b> · 시점: <b>드래그</b></p>
     <p>봉헌된 촛불: <b id="candle-count">1</b>개</p>
-    <div class="char-row">
-      <span>캐릭터:</span>
-      <button type="button" id="btn-female" class="char-btn active">👩 여자</button>
-      <button type="button" id="btn-male" class="char-btn">👨 남자</button>
-      <button type="button" id="btn-bgm" class="char-btn" style="margin-left:auto;">🔇 자비송</button>
+    <div class="name-row">
+      <span id="hud-nickname">† meekaa</span>
+      <button type="button" id="btn-edit-name">이름 변경</button>
     </div>
+  </div>
+
+  <div id="top-tools">
+    <button type="button" id="btn-female" class="tool-btn active">👩 여자</button>
+    <button type="button" id="btn-male" class="tool-btn">👨 남자</button>
+    <button type="button" id="btn-veil" class="tool-btn active">🤍 미사보</button>
+    <button type="button" id="btn-bgm" class="tool-btn">🔇 자비송</button>
   </div>
 
   <div id="toast">촛불을 밝히고 마음을 모았습니다.</div>
@@ -123,14 +171,72 @@
   </div>
 
   <div id="actions">
-    <button id="btn-candle">🕯️ 촛불 켜기 (E)</button>
-    <button id="btn-pray">🙏 기도하기 / 일어서기 (P)</button>
+    <button type="button" id="btn-candle" class="act-btn">🕯️ 촛불</button>
+    <button type="button" id="btn-pray" class="act-btn">🙏 기도</button>
+    <button type="button" id="btn-holywater" class="act-btn">✝️ 성호경</button>
+    <button type="button" id="btn-peace" class="act-btn">🕊️ 평화의 기도</button>
+    <button type="button" id="btn-confess" class="act-btn">🚪 고해성사</button>
+  </div>
+
+  <!-- 평화의 기도 모달 -->
+  <div id="peace-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2>🕊️ 성 프란치스코의 평화의 기도</h2>
+      <div class="prayer-text">
+        주님, 저를 당신의 도구가 되게 하소서.<br><br>
+        미움이 있는 곳에 사랑을,<br>
+        다툼이 있는 곳에 용서를,<br>
+        분열이 있는 곳에 일치를,<br>
+        의혹이 있는 곳에 신앙을,<br>
+        그릇됨이 있는 곳에 진리를,<br>
+        절망이 있는 곳에 희망을,<br>
+        어두움에 빛을,<br>
+        슬픔이 있는 곳에 기쁨을 가져오는 자 되게 하소서.<br><br>
+        위로받기보다는 위로하고,<br>
+        이해받기보다는 이해하며,<br>
+        사랑받기보다는 사랑하게 하여 주소서.<br><br>
+        우리는 줌으로써 받고,<br>
+        용서함으로써 용서받으며,<br>
+        자기를 버리고 죽음으로써 영생을 얻기 때문입니다. 아멘.
+      </div>
+      <div class="modal-btns">
+        <button type="button" id="btn-peace-close" class="act-btn active">🙏 아멘</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 고해성사실 모달 -->
+  <div id="confess-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2>🚪 고해성사실 · 마음 비우기</h2>
+      <p style="font-size:12.5px;color:#cbd5e1;margin-bottom:12px;line-height:1.5;">
+        마음속 고민이나 고백을 적어 내려놓으세요.<br>적은 글은 어디에도 저장되지 않고 빛으로 사라집니다.
+      </p>
+      <textarea id="confess-input" class="modal-input" rows="4" placeholder="주님께 조용히 털어놓고 싶은 마음을 적어보세요..."></textarea>
+      <div class="modal-btns">
+        <button type="button" id="btn-confess-submit" class="act-btn active">✨ 빛으로 비우기</button>
+        <button type="button" id="btn-confess-close" class="act-btn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이름 변경 모달 -->
+  <div id="name-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2>✝️ 이름(세례명) 설정</h2>
+      <input id="name-input" class="modal-input" type="text" maxlength="16" placeholder="예: meekaa" />
+      <div class="modal-btns">
+        <button type="button" id="btn-name-save" class="act-btn active">저장</button>
+        <button type="button" id="btn-name-close" class="act-btn">취소</button>
+      </div>
+    </div>
   </div>
 
   <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+    import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1f1914);
@@ -269,19 +375,36 @@
     sanctuaryLampLight.position.set(-2.3, 2.9, -13.6);
     scene.add(sanctuaryLampLight);
 
-    // --- Materials ---
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x3b4252, roughness: 0.82 });
-    const darkStoneMat = new THREE.MeshStandardMaterial({ color: 0x2b303c, roughness: 0.88 });
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.65 });
-    const marbleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.25, metalness: 0.05 });
+    // --- CC0 Texture Loader & Materials ---
+    const texLoader = new THREE.TextureLoader();
+    function loadTex(path, rx = 1, ry = 1) {
+      const t = texLoader.load(path);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(rx, ry);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    const floorTex = loadTex('./assets/textures/floor_tiles_06_diff_1k.jpg', 6, 11);
+    const marbleTex = loadTex('./assets/textures/marble_01_diff_1k.jpg', 2, 2);
+    const sandstoneTex = loadTex('./assets/textures/sandstone_blocks_08_diff_1k.jpg', 2, 4);
+    const woodTex = loadTex('./assets/textures/fine_grained_wood_diff_1k.jpg', 2, 2);
+    const oakTex = loadTex('./assets/textures/black_oak_veneer_diff_1k.jpg', 1, 2);
+    const chartresRoseTex = loadTex('./assets/stained-glass/chartres_north_rose.jpg', 1, 1);
+
+    const stoneMat = new THREE.MeshStandardMaterial({ map: sandstoneTex, color: 0xb8b2a6, roughness: 0.82 });
+    const darkStoneMat = new THREE.MeshStandardMaterial({ map: sandstoneTex, color: 0x7c7870, roughness: 0.88 });
+    const pillarMat = new THREE.MeshStandardMaterial({ map: sandstoneTex, color: 0xcbc5b9, roughness: 0.72 });
+    const marbleMat = new THREE.MeshStandardMaterial({ map: marbleTex, color: 0xf8fafc, roughness: 0.25, metalness: 0.05 });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.28, metalness: 0.82, emissive: 0x92400e, emissiveIntensity: 0.18 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c2808, roughness: 0.58 });
+    const woodMat = new THREE.MeshStandardMaterial({ map: woodTex, color: 0xd6b08c, roughness: 0.58 });
+    const oakMat = new THREE.MeshStandardMaterial({ map: oakTex, color: 0x9c7a5c, roughness: 0.6 });
     const velvetMat = new THREE.MeshStandardMaterial({ color: 0x881d1d, roughness: 0.88 });
 
     // --- Floor & Carpet ---
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 34),
-      new THREE.MeshStandardMaterial({ map: createMarbleTexture(), roughness: 0.35, metalness: 0.08 })
+      new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.35, metalness: 0.08 })
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
@@ -372,8 +495,8 @@
     scene.add(entranceWall);
 
     // Grand Arched Cathedral Entrance Door (성당 대문)
-    const doorWoodMat = new THREE.MeshStandardMaterial({ color: 0x3b1806, roughness: 0.62 });
-    const doorPanelMat = new THREE.MeshStandardMaterial({ color: 0x2a1004, roughness: 0.7 });
+    const doorWoodMat = oakMat;
+    const doorPanelMat = new THREE.MeshStandardMaterial({ map: oakTex, color: 0x6b523e, roughness: 0.7 });
     [-1.72, 1.72].forEach((dx) => {
       const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 3.6, 0.35), pillarMat);
       jamb.position.set(dx, 1.8, 16.12);
@@ -413,10 +536,10 @@
       });
     });
 
-    // Grand Stained-Glass Rose Window
+    // Grand Stained-Glass Rose Window (Chartres North Rose)
     const roseWindow = new THREE.Mesh(
       new THREE.CircleGeometry(3.2, 48),
-      new THREE.MeshBasicMaterial({ map: createRoseWindowTexture() })
+      new THREE.MeshBasicMaterial({ map: chartresRoseTex })
     );
     roseWindow.position.set(0, 9.8, -16.15);
     scene.add(roseWindow);
@@ -533,12 +656,77 @@
     sanctuaryLamp.position.set(-2.3, 2.9, -13.6);
     scene.add(lampChain, sanctuaryLamp);
 
-    // Grand Crucifix behind Altar
-    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.0, 0.2), goldMat);
-    crossV.position.set(0, 3.8, -15.3);
-    const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.22, 0.2), goldMat);
-    crossH.position.set(0, 4.35, -15.3);
-    scene.add(crossV, crossH);
+    // Grand Crucifix behind Altar (십자가 + 예수님 상)
+    const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.24, 3.2, 0.2), goldMat);
+    crossV.position.set(0, 3.9, -15.3);
+    const crossH = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.24, 0.2), goldMat);
+    crossH.position.set(0, 4.5, -15.3);
+    const inri = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.06), new THREE.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.4 }));
+    inri.position.set(0, 5.2, -15.18);
+    scene.add(crossV, crossH, inri);
+
+    // Jesus Corpus on the Cross
+    const corpusSkin = new THREE.MeshStandardMaterial({ color: 0xf5dcc4, roughness: 0.55 });
+    const corpusRobe = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.85 });
+    const jGroup = new THREE.Group();
+    jGroup.position.set(0, 4.05, -15.13);
+
+    const jTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.11, 0.68, 12), corpusSkin);
+    jTorso.position.y = 0.08;
+    const jLoin = new THREE.Mesh(new THREE.CylinderGeometry(0.125, 0.145, 0.28, 12), corpusRobe);
+    jLoin.position.y = -0.32;
+    const jLegs = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.05, 0.65, 10), corpusSkin);
+    jLegs.position.y = -0.74;
+    const jHead = new THREE.Mesh(new THREE.SphereGeometry(0.135, 14, 14), corpusSkin);
+    jHead.position.set(0, 0.56, 0.04);
+    jHead.rotation.x = 0.28;
+    const jHair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.142, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.62),
+      new THREE.MeshStandardMaterial({ color: 0x4a2e1b, roughness: 0.75 })
+    );
+    jHair.position.set(0, 0.58, 0.02);
+    const jHalo = new THREE.Mesh(
+      new THREE.TorusGeometry(0.24, 0.02, 8, 24),
+      new THREE.MeshBasicMaterial({ color: 0xfde68a })
+    );
+    jHalo.position.set(0, 0.58, -0.05);
+
+    [-1, 1].forEach((side) => {
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.78, 8), corpusSkin);
+      arm.rotation.z = side * (Math.PI / 2 - 0.18);
+      arm.position.set(side * 0.44, 0.36, 0);
+      jGroup.add(arm);
+    });
+    jGroup.add(jTorso, jLoin, jLegs, jHead, jHair, jHalo);
+    scene.add(jGroup);
+
+    // --- Confessional Booth (고해성사실) on Left Side Aisle ---
+    const confessional = new THREE.Group();
+    confessional.position.set(-7.3, 0, 4.0);
+    confessional.rotation.y = Math.PI / 2;
+    const confBody = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.7, 1.35), oakMat);
+    confBody.position.y = 1.35;
+    confBody.castShadow = true;
+    const confRoof = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.18, 1.5), oakMat);
+    confRoof.position.y = 2.78;
+    const confCrossV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.45, 0.06), goldMat);
+    confCrossV.position.set(0, 3.1, 0.55);
+    const confCrossH = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.06), goldMat);
+    confCrossH.position.set(0, 3.18, 0.55);
+    // Center priest compartment + left/right penitent curtains
+    [-0.78, 0.78].forEach((cx) => {
+      const curtain = new THREE.Mesh(new THREE.BoxGeometry(0.66, 2.1, 0.06), velvetMat);
+      curtain.position.set(cx, 1.15, 0.68);
+      const step = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.12, 0.28), velvetMat);
+      step.position.set(cx, 0.06, 0.82);
+      confessional.add(curtain, step);
+    });
+    const centerDoor = new THREE.Mesh(new THREE.BoxGeometry(0.68, 2.15, 0.08), new THREE.MeshStandardMaterial({ color: 0x3b1806, roughness: 0.6 }));
+    centerDoor.position.set(0, 1.12, 0.68);
+    const confSign = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.18, 0.05), goldMat);
+    confSign.position.set(0, 2.42, 0.69);
+    confessional.add(confBody, confRoof, confCrossV, confCrossH, centerDoor, confSign);
+    scene.add(confessional);
 
     // Ambo / Lectern (독서대) on Left
     const lecternBase = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 1.15, 10), woodMat);
@@ -551,20 +739,57 @@
     bible.rotation.x = 0.25;
     scene.add(lecternBase, lecternTop, bible);
 
-    // Side Shrine & Lily Flower Vases
+    // Side Shrine Pedestals + SMK CC0 Sculptures (Bruges Madonna & St. Francis)
+    const stlLoader = new STLLoader();
+    function loadSculpture(url, x, y, z, targetHeight, rotY = 0) {
+      stlLoader.load(url, (geo) => {
+        geo.computeVertexNormals();
+        geo.computeBoundingBox();
+        const box = geo.boundingBox;
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        // Handle Z-up scans if depth is much taller than Y
+        if (size.z > size.y * 1.35) {
+          geo.rotateX(-Math.PI / 2);
+          geo.computeBoundingBox();
+          geo.boundingBox.getSize(size);
+        }
+        const scale = targetHeight / Math.max(size.y, 0.001);
+        const center = new THREE.Vector3();
+        geo.boundingBox.getCenter(center);
+        const mesh = new THREE.Mesh(geo, marbleMat);
+        mesh.scale.setScalar(scale);
+        mesh.position.set(
+          x - center.x * scale,
+          y - geo.boundingBox.min.y * scale,
+          z - center.z * scale
+        );
+        mesh.rotation.y = rotY;
+        mesh.castShadow = true;
+        scene.add(mesh);
+      });
+    }
+
     [-4.1, 4.1].forEach((fx) => {
-      const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.9, 12), marbleMat);
+      const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.48, 0.9, 16), marbleMat);
       pedestal.position.set(fx, altarY + 0.45, -14.2);
-      const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.09, 0.32, 12), goldMat);
-      vase.position.set(fx, altarY + 1.06, -14.2);
-      scene.add(pedestal, vase);
+      scene.add(pedestal);
+    });
+    loadSculpture('./assets/sculptures/saint_statue.stl', -4.1, altarY + 0.9, -14.2, 1.85, 0.25);
+    loadSculpture('./assets/sculptures/risen_christ.stl', 4.1, altarY + 0.9, -14.2, 1.85, -0.25);
+
+    // Lily Flower Vases beside the High Altar
+    [-2.4, 2.4].forEach((fx) => {
+      const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.09, 0.34, 12), goldMat);
+      vase.position.set(fx, altarY + 0.17, -13.3);
+      scene.add(vase);
       for (let b = 0; b < 5; b++) {
         const ang = (b / 5) * Math.PI * 2;
         const blossom = new THREE.Mesh(
           new THREE.SphereGeometry(0.08, 8, 8),
           new THREE.MeshStandardMaterial({ color: 0xfff1f2, emissive: 0xfecdd3, emissiveIntensity: 0.15 })
         );
-        blossom.position.set(fx + Math.cos(ang) * 0.11, altarY + 1.28 + (b % 2) * 0.07, -14.2 + Math.sin(ang) * 0.11);
+        blossom.position.set(fx + Math.cos(ang) * 0.11, altarY + 0.41 + (b % 2) * 0.07, -13.3 + Math.sin(ang) * 0.11);
         scene.add(blossom);
       }
     });
@@ -663,9 +888,93 @@
     let activeHead = null;
     let activeParts = { leftArm: null, rightArm: null, leftLeg: null, rightLeg: null };
     let currentGender = 'female';
+    let hasVeil = true;
+    let playerName = 'meekaa';
+    let nameSprite = null;
+    let signCrossTimer = 0;
+
+    function createLaceVeilTexture() {
+      const c = document.createElement('canvas');
+      c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+      ctx.lineWidth = 1.5;
+      for (let y = 8; y < 128; y += 16) {
+        for (let x = 8; x < 128; x += 16) {
+          ctx.beginPath();
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2, 2);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const veilMat = new THREE.MeshStandardMaterial({
+      map: createLaceVeilTexture(),
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.82,
+      roughness: 0.85,
+      side: THREE.DoubleSide
+    });
+
+    function createNameTexture(text) {
+      const c = document.createElement('canvas');
+      c.width = 320; c.height = 72;
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, 320, 72);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.beginPath();
+      ctx.roundRect(16, 12, 288, 48, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(253, 230, 138, 0.65)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#fde68a';
+      ctx.font = 'bold 24px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`† ${text}`, 160, 37);
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    function updateNameTag() {
+      if (!nameSprite) {
+        nameSprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: createNameTexture(playerName), transparent: true, depthWrite: false })
+        );
+        nameSprite.scale.set(1.35, 0.3, 1);
+        nameSprite.position.set(0, 1.72, 0);
+        avatar.add(nameSprite);
+      } else {
+        nameSprite.material.map.dispose();
+        nameSprite.material.map = createNameTexture(playerName);
+        nameSprite.material.needsUpdate = true;
+      }
+      document.getElementById('hud-nickname').textContent = `† ${playerName}`;
+    }
+
+    // Golden prayer halo ring on floor
+    const prayerRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.42, 0.52, 32),
+      new THREE.MeshBasicMaterial({ color: 0xfde68a, transparent: true, opacity: 0.65, side: THREE.DoubleSide })
+    );
+    prayerRing.rotation.x = -Math.PI / 2;
+    prayerRing.position.y = 0.03;
+    prayerRing.visible = false;
 
     function applyPose() {
       avatar.position.y = isPraying ? -0.26 : 0;
+      prayerRing.visible = isPraying;
+      prayerRing.position.y = isPraying ? 0.29 : 0.03;
       if (activeHead) activeHead.rotation.x = isPraying ? 0.38 : 0;
       if (activeParts.leftArm && activeParts.rightArm) {
         activeParts.leftArm.rotation.x = isPraying ? -0.85 : 0;
@@ -733,6 +1042,20 @@
         );
         band.position.set(0, 0.2, 0.04);
         headGroup.add(hairTop, hairBack, band);
+
+        // Lace Chapel Veil (미사보)
+        if (hasVeil) {
+          const veilTop = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.08, 0.43, 3, 0.03), veilMat);
+          veilTop.position.set(0, 0.21, -0.02);
+          const veilBack = new THREE.Mesh(new RoundedBoxGeometry(0.48, 0.56, 0.06, 2, 0.02), veilMat);
+          veilBack.position.set(0, -0.06, -0.22);
+          [-0.23, 0.23].forEach((vx) => {
+            const veilSide = new THREE.Mesh(new RoundedBoxGeometry(0.05, 0.46, 0.28, 2, 0.02), veilMat);
+            veilSide.position.set(vx, -0.02, -0.05);
+            headGroup.add(veilSide);
+          });
+          headGroup.add(veilTop, veilBack);
+        }
       } else {
         const hairMat = new THREE.MeshStandardMaterial({ color: 0x271c15, roughness: 0.7 });
         const hairTop = new THREE.Mesh(new RoundedBoxGeometry(0.45, 0.14, 0.41, 3, 0.04), hairMat);
@@ -795,7 +1118,8 @@
       activeParts.leftLeg = makeLeg(-0.12);
       activeParts.rightLeg = makeLeg(0.12);
 
-      avatar.add(headGroup);
+      avatar.add(headGroup, prayerRing);
+      if (nameSprite) avatar.add(nameSprite);
       activeHead = headGroup;
       applyPose();
     }
@@ -803,6 +1127,14 @@
     const keys = {};
     let isPraying = false;
     buildCharacter(currentGender);
+    updateNameTag();
+
+    const btnVeil = document.getElementById('btn-veil');
+    function syncVeilBtn() {
+      btnVeil.style.display = currentGender === 'female' ? 'inline-block' : 'none';
+      btnVeil.classList.toggle('active', hasVeil);
+    }
+    syncVeilBtn();
 
     function setGender(gender) {
       if (currentGender === gender) return;
@@ -810,23 +1142,31 @@
       buildCharacter(gender);
       document.getElementById('btn-female').classList.toggle('active', gender === 'female');
       document.getElementById('btn-male').classList.toggle('active', gender === 'male');
+      syncVeilBtn();
       showToast(gender === 'female' ? '여자 캐릭터로 변경했습니다.' : '남자 캐릭터로 변경했습니다.');
     }
 
     document.getElementById('btn-female').onclick = () => setGender('female');
     document.getElementById('btn-male').onclick = () => setGender('male');
+    btnVeil.onclick = () => {
+      hasVeil = !hasVeil;
+      buildCharacter(currentGender);
+      syncVeilBtn();
+      showToast(hasVeil ? '미사보를 착용했습니다.' : '미사보를 벗었습니다.');
+    };
 
     function showToast(msg) {
       const el = document.getElementById('toast');
       el.textContent = msg;
       el.style.opacity = '1';
       clearTimeout(el._timer);
-      el._timer = setTimeout(() => (el.style.opacity = '0'), 2200);
+      el._timer = setTimeout(() => (el.style.opacity = '0'), 2600);
     }
 
     function togglePray() {
       isPraying = !isPraying;
       applyPose();
+      document.getElementById('btn-pray').classList.toggle('active', isPraying);
       showToast(isPraying ? '무릎을 꿇고 기도를 시작합니다.' : '자리에서 일어났습니다.');
     }
 
@@ -835,7 +1175,58 @@
       showToast('촛불을 밝혀 기도를 봉헌했습니다.');
     }
 
+    function doSignOfCross() {
+      signCrossTimer = 2.0;
+      const nearFont = avatar.position.z >= 9.5;
+      showToast(
+        nearFont
+          ? '✝️ 입구 성수를 찍어 성호경을 바칩니다. (성부와 성자와 성령의 이름으로 아멘)'
+          : '✝️ 성호경을 바칩니다. (성부와 성자와 성령의 이름으로 아멘)'
+      );
+    }
+
+    // Modals (Peace Prayer, Confessional, Nickname)
+    const peaceModal = document.getElementById('peace-modal');
+    const confessModal = document.getElementById('confess-modal');
+    const nameModal = document.getElementById('name-modal');
+    const nameInput = document.getElementById('name-input');
+    const confessInput = document.getElementById('confess-input');
+
+    document.getElementById('btn-peace').onclick = () => peaceModal.classList.add('open');
+    document.getElementById('btn-peace-close').onclick = () => {
+      peaceModal.classList.remove('open');
+      showToast('🕊️ 주님의 평화가 함께하시길 빕니다. 아멘.');
+    };
+
+    document.getElementById('btn-confess').onclick = () => {
+      confessModal.classList.add('open');
+      setTimeout(() => confessInput.focus(), 50);
+    };
+    document.getElementById('btn-confess-close').onclick = () => confessModal.classList.remove('open');
+    document.getElementById('btn-confess-submit').onclick = () => {
+      confessInput.value = '';
+      confessModal.classList.remove('open');
+      showToast('✨ 마음의 짐을 주님 앞에 내려놓고 평안을 얻었습니다.');
+    };
+
+    document.getElementById('btn-edit-name').onclick = () => {
+      nameInput.value = playerName;
+      nameModal.classList.add('open');
+      setTimeout(() => nameInput.focus(), 50);
+    };
+    document.getElementById('btn-name-close').onclick = () => nameModal.classList.remove('open');
+    document.getElementById('btn-name-save').onclick = () => {
+      const val = nameInput.value.trim();
+      if (val) {
+        playerName = val;
+        updateNameTag();
+        showToast(`이름이 '${playerName}'(으)로 변경되었습니다.`);
+      }
+      nameModal.classList.remove('open');
+    };
+
     window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       keys[e.code] = true;
       if (e.code === 'KeyE') lightCandle();
       if (e.code === 'KeyP') togglePray();
@@ -843,6 +1234,7 @@
     window.addEventListener('keyup', (e) => (keys[e.code] = false));
     document.getElementById('btn-candle').onclick = lightCandle;
     document.getElementById('btn-pray').onclick = togglePray;
+    document.getElementById('btn-holywater').onclick = doSignOfCross;
 
     const joystickZone = document.getElementById('joystick-zone');
     const joystickKnob = document.getElementById('joystick-knob');
@@ -962,9 +1354,28 @@
       if (!isPraying && activeParts.leftArm) {
         const swing = isMoving ? Math.sin(elapsed * 10) * 0.55 : 0;
         activeParts.leftArm.rotation.x = THREE.MathUtils.lerp(activeParts.leftArm.rotation.x, swing, 0.22);
-        activeParts.rightArm.rotation.x = THREE.MathUtils.lerp(activeParts.rightArm.rotation.x, -swing, 0.22);
         activeParts.leftLeg.rotation.x = THREE.MathUtils.lerp(activeParts.leftLeg.rotation.x, -swing * 0.85, 0.22);
         activeParts.rightLeg.rotation.x = THREE.MathUtils.lerp(activeParts.rightLeg.rotation.x, swing * 0.85, 0.22);
+        if (signCrossTimer > 0) {
+          signCrossTimer = Math.max(0, signCrossTimer - dt);
+          const p = 2.0 - signCrossTimer; // 0..2s
+          let rx = -1.2, rz = 0.2;
+          if (p < 0.5) { rx = -2.1; rz = 0.35; } // forehead
+          else if (p < 1.0) { rx = -1.1; rz = 0.35; } // chest
+          else if (p < 1.5) { rx = -1.3; rz = 0.65; } // left shoulder
+          else { rx = -1.3; rz = -0.15; } // right shoulder
+          activeParts.rightArm.rotation.x = THREE.MathUtils.lerp(activeParts.rightArm.rotation.x, rx, 0.28);
+          activeParts.rightArm.rotation.z = THREE.MathUtils.lerp(activeParts.rightArm.rotation.z, rz, 0.28);
+          if (signCrossTimer === 0) activeParts.rightArm.rotation.z = 0;
+        } else {
+          activeParts.rightArm.rotation.x = THREE.MathUtils.lerp(activeParts.rightArm.rotation.x, -swing, 0.22);
+          activeParts.rightArm.rotation.z = THREE.MathUtils.lerp(activeParts.rightArm.rotation.z, 0, 0.22);
+        }
+      }
+
+      if (prayerRing.visible) {
+        const ps = 1 + Math.sin(elapsed * 3.5) * 0.06;
+        prayerRing.scale.set(ps, ps, 1);
       }
 
       flames.forEach((f, i) => {
